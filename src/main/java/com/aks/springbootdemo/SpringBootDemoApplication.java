@@ -5,13 +5,14 @@ import org.postgresql.Driver;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.util.Assert;
 
-import javax.sql.DataSource;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 public class SpringBootDemoApplication {
@@ -26,7 +27,9 @@ public class SpringBootDemoApplication {
         var jdbcTemplate = new JdbcTemplate(dataSource);
 
         var customerService = new DefaultCustomerService(jdbcTemplate);
-        customerService.getAll().forEach(customer -> log.info("customer ==> {}",customer));
+        customerService.add("One");
+        customerService.add("Two");
+        customerService.getAll().forEach(customer -> log.info("customer ==> {}", customer));
     }
 
     static class DefaultCustomerService {
@@ -44,6 +47,32 @@ public class SpringBootDemoApplication {
 
         Collection<Customer> getAll() throws Exception {
             return template.query("select * from customer", this.customerRowMapper);
+        }
+
+        Customer add(String name) {
+
+            var arrayList = new ArrayList<Map<String, Object>>();
+            arrayList.add(Map.of("id", Integer.class));
+            var keyHolder = new GeneratedKeyHolder(arrayList);
+
+            this.template.update(
+                    con -> {
+                        var ps = con.prepareStatement("insert into customer (name) values(?)", Statement.RETURN_GENERATED_KEYS);
+                        ps.setString(1, name);
+                        return ps;
+                    },
+                    keyHolder
+            );
+
+            log.info("keyHolder : {}", keyHolder.getKeys());
+            var generatedId = Objects.requireNonNull(keyHolder.getKeys()).get("id");
+            Assert.state(generatedId instanceof Number, "the generated id should be a Number!");
+            var id = ((Number) generatedId).intValue();
+            return getById(id);
+        }
+
+        Customer getById(Integer id) {
+            return this.template.queryForObject("select * from customer where id = ?", this.customerRowMapper, id);
         }
     }
 
