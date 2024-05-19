@@ -27,8 +27,9 @@ public class SpringBootDemoApplication {
         var jdbcTemplate = new JdbcTemplate(dataSource);
 
         var customerService = new DefaultCustomerService(jdbcTemplate);
-        customerService.add("One");
-        customerService.add("Two");
+        log.info("customer added ==> {}", customerService.update("One"));
+        log.info("customer added ==> {}", customerService.update("Two"));
+
         customerService.getAll().forEach(customer -> log.info("customer ==> {}", customer));
     }
 
@@ -49,7 +50,7 @@ public class SpringBootDemoApplication {
             return template.query("select * from customer", this.customerRowMapper);
         }
 
-        Customer add(String name) {
+        Customer update(String name) {
 
             var arrayList = new ArrayList<Map<String, Object>>();
             arrayList.add(Map.of("id", Integer.class));
