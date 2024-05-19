@@ -2,11 +2,16 @@ package com.aks.springbootdemo;
 
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.Driver;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 @Slf4j
 public class SpringBootDemoApplication {
@@ -18,32 +23,27 @@ public class SpringBootDemoApplication {
         );
         dataSource.setDriverClassName(Driver.class.getName());
 
-        var customerService = new DefaultCustomerService(dataSource);
+        var jdbcTemplate = new JdbcTemplate(dataSource);
+
+        var customerService = new DefaultCustomerService(jdbcTemplate);
         customerService.getAll().forEach(customer -> log.info("customer ==> {}",customer));
     }
 
     static class DefaultCustomerService {
-        private final DataSource dataSource;
+        private final JdbcTemplate template;
 
-        DefaultCustomerService(DataSource dataSource) {
-            this.dataSource = dataSource;
+        private final RowMapper<Customer> customerRowMapper = (resultSet, rowNum) -> {
+            var id = resultSet.getInt("id");
+            var name = resultSet.getString("name");
+            return new Customer(id, name);
+        };
+
+        DefaultCustomerService(JdbcTemplate jdbcTemplate) {
+            this.template = jdbcTemplate;
         }
 
         Collection<Customer> getAll() throws Exception {
-            var result = new ArrayList<Customer>();
-
-            try (var connection = dataSource.getConnection()) {
-                try (var statement = connection.createStatement()) {
-                    try (var resultSet = statement.executeQuery("select * from customer")) {
-                        while (resultSet.next()) {
-                            var id = resultSet.getInt("id");
-                            var name = resultSet.getString("name");
-                            result.add(new Customer(id, name));
-                        }
-                    }
-                }
-            }
-            return result;
+            return template.query("select * from customer", this.customerRowMapper);
         }
     }
 
