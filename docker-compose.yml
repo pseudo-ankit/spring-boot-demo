@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:latest
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    environment:
+      - POSTGRES_USER=postgres
+      - PGUSER=postgres
+      - POSTGRES_NAME=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
