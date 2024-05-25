@@ -6,6 +6,8 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -110,6 +112,7 @@ class CustomerService {
 @Configuration
 @ComponentScan
 @EnableTransactionManagement
+@PropertySource("classpath:/application.properties")
 class DataConfig {
 
     @Bean
@@ -129,11 +132,12 @@ class DataConfig {
     }
 
     @Bean
-    DriverManagerDataSource driverManagerDataSource() {
-        var dataSource = new DriverManagerDataSource(
-                "jdbc:postgresql://localhost/postgres",
-                "postgres", "postgres"
-        );
+    DriverManagerDataSource driverManagerDataSource(Environment environment) {
+        var url = environment.getProperty("spring.datasource.url", "");
+        var userName = environment.getProperty("spring.datasource.username", "");
+        var password = environment.getProperty("spring.datasource.password", "");
+
+        var dataSource = new DriverManagerDataSource(url, userName, password);
         dataSource.setDriverClassName(Driver.class.getName());
         return dataSource;
     }
